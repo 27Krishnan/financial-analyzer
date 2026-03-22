@@ -611,4 +611,4 @@ if __name__ == '__main__':
         print(f"  - http://localhost:{port}")
         print(f"  - http://YOUR_IP:{port} (for network access)\n")
 
-    app.run(debug=True, port=port, host=host)
+    app.run(debug=False, port=port, host=host)
