@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Option Chain Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .controls input, .controls select, .controls button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .controls input, .controls select {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .controls input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .controls button {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,217,255,0.4);
+        }
+
+        .stock-info {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stock-info .info-item {
+            text-align: center;
+        }
+
+        .stock-info .info-label {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 5px;
+        }
+
+        .stock-info .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .stock-info .info-value.positive {
+            color: #00ff88;
+        }
+
+        .stock-info .info-value.negative {
+            color: #ff4757;
+        }
+
+        .option-chain {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .option-chain table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .option-chain th {
+            background: rgba(0,217,255,0.2);
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .option-chain td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .option-chain tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .calls-section {
+            border-right: 2px solid rgba(0,217,255,0.3);
+        }
+
+        .strike-price {
+            font-weight: bold;
+            color: #00d9ff;
+            background: rgba(0,217,255,0.1);
+        }
+
+        .in-the-money {
+            background: rgba(0,255,136,0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .error {
+            background: rgba(255,71,87,0.2);
+            border: 1px solid #ff4757;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Option Chain Viewer</h1>
+            <p>Real-time options data at your fingertips</p>
+        </header>
+
+        <div class="controls">
+            <input type="text" id="symbol" placeholder="Enter symbol (e.g., AAPL)" value="AAPL">
+            <select id="expiration">
+                <option value="">Select Expiration</option>
+            </select>
+            <button onclick="loadOptionChain()">Load Chain</button>
+        </div>
+
+        <div id="stockInfo" class="stock-info" style="display: none;">
+            <div class="info-item">
+                <div class="info-label">Stock Price</div>
+                <div class="info-value" id="stockPrice">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Change</div>
+                <div class="info-value" id="stockChange">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Volume</div>
+                <div class="info-value" id="volume">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Open Interest</div>
+                <div class="info-value" id="openInterest">--</div>
+            </div>
+        </div>
+
+        <div id="optionChain" class="option-chain">
+            <div class="loading">Enter a symbol and click "Load Chain" to view options data</div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for demonstration (replace with real API calls)
+        const sampleOptionData = {
+            stockPrice: 175.50,
+            change: 2.35,
+            changePercent: 1.36,
+            volume: 52847000,
+            openInterest: 1250000,
+            expirations: ['2026-03-27', '2026-04-03', '2026-04-17', '2026-05-16', '2026-06-19'],
+            options: [
+                { strike: 160, callBid: 16.20, callAsk: 16.50, callVol: 1250, callOI: 5420, putBid: 0.85, putAsk: 0.95, putVol: 890, putOI: 3210 },
+                { strike: 165, callBid: 11.80, callAsk: 12.10, callVol: 2340, callOI: 8750, putBid: 1.45, putAsk: 1.55, putVol: 1560, putOI: 5430 },
+                { strike: 170, callBid: 7.90, callAsk: 8.20, callVol: 4520, callOI: 12340, putBid: 2.80, putAsk: 2.95, putVol: 3210, putOI: 8920 },
+                { strike: 175, callBid: 4.50, callAsk: 4.75, callVol: 8930, callOI: 18560, putBid: 4.40, putAsk: 4.60, putVol: 7650, putOI: 15430 },
+                { strike: 180, callBid: 2.15, callAsk: 2.30, callVol: 6780, callOI: 14230, putBid: 7.20, putAsk: 7.45, putVol: 5430, putOI: 11250 },
+                { strike: 185, callBid: 0.85, callAsk: 0.95, callVol: 3450, callOI: 9870, putBid: 11.50, putAsk: 11.80, putVol: 2890, putOI: 7650 },
+                { strike: 190, callBid: 0.30, callAsk: 0.40, callVol: 1890, callOI: 5430, putBid: 16.20, putAsk: 16.50, putVol: 1230, putOI: 4320 },
+            ]
+        };
+
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        function formatCurrency(num) {
+            return '$' + num.toFixed(2);
+        }
+
+        function loadOptionChain() {
+            const symbol = document.getElementById('symbol').value.toUpperCase();
+            const optionChainDiv = document.getElementById('optionChain');
+            const stockInfoDiv = document.getElementById('stockInfo');
+
+            if (!symbol) {
+                optionChainDiv.innerHTML = '<div class="error">Please enter a stock symbol</div>';
+                return;
+            }
+
+            // Show loading
+            optionChainDiv.innerHTML = '<div class="loading">Loading option chain for ' + symbol + '...</div>';
+            stockInfoDiv.style.display = 'none';
+
+            // Simulate API call (replace with actual API integration)
+            setTimeout(() => {
+                displayOptionChain(symbol, sampleOptionData);
+            }, 500);
+        }
+
+        function displayOptionChain(symbol, data) {
+            const stockInfoDiv = document.getElementById('stockInfo');
+            const optionChainDiv = document.getElementById('optionChain');
+
+            // Display stock info
+            document.getElementById('stockPrice').textContent = formatCurrency(data.stockPrice);
+            
+            const changeEl = document.getElementById('stockChange');
+            const changeSign = data.change >= 0 ? '+' : '';
+            changeEl.textContent = changeSign + formatCurrency(data.change) + ' (' + data.changePercent.toFixed(2) + '%)';
+            changeEl.className = 'info-value ' + (data.change >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('volume').textContent = formatNumber(data.volume);
+            document.getElementById('openInterest').textContent = formatNumber(data.openInterest);
+            stockInfoDiv.style.display = 'flex';
+
+            // Build option chain table
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="6" style="background: rgba(0,217,255,0.3);">CALLS</th>
+                            <th style="background: rgba(255,255,255,0.1);">Strike</th>
+                            <th colspan="6" style="background: rgba(255,71,87,0.3);">PUTS</th>
+                        </tr>
+                        <tr>
+                            <th>Bid</th>
+                            <th>Ask</th>
+                            <th>Volume</th>
+                            <th>Open Int</th>
+                            <th>Strike</th>
+                            <th>Bid</th>
+                            <th>Ask</th>
+                            <th>Volume</th>
+                            <th>Open Int</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.options.forEach(opt => {
+                const inTheMoneyClass = opt.strike < data.stockPrice ? 'in-the-money' : '';
+                html += `
+                    <tr>
+                        <td class="${inTheMoneyClass}">${formatCurrency(opt.callBid)}</td>
+                        <td class="${inTheMoneyClass}">${formatCurrency(opt.callAsk)}</td>
+                        <td class="${inTheMoneyClass}">${formatNumber(opt.callVol)}</td>
+                        <td class="${inTheMoneyClass}">${formatNumber(opt.callOI)}</td>
+                        <td class="strike-price">${opt.strike}</td>
+                        <td>${formatCurrency(opt.putBid)}</td>
+                        <td>${formatCurrency(opt.putAsk)}</td>
+                        <td>${formatNumber(opt.putVol)}</td>
+                        <td>${formatNumber(opt.putOI)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            optionChainDiv.innerHTML = html;
+        }
+
+        // Load on Enter key
+        document.getElementById('symbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadOptionChain();
+            }
+        });
+    </script>
+</body>
+</html>
