@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements.txt .
+COPY requirements-lite.txt requirements.txt
 
-# Install Python packages
+# Install packages (faster, no ML models)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
@@ -23,11 +23,11 @@ COPY RAGDocumentAnalyzer.py .
 RUN mkdir -p uploads
 
 # Expose port
-EXPOSE 7860
+EXPOSE 8080
 
 # Set environment variables
-ENV GRADIO_SERVER_NAME="0.0.0.0"
-ENV GRADIO_SERVER_PORT="7860"
+ENV PORT=8080
+ENV HOST=0.0.0.0
 
 # Run the application
 CMD ["python", "analyzer_server.py"]
