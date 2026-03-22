@@ -14,14 +14,29 @@ import pdfplumber
 import numpy as np
 from tqdm import tqdm
 
-# AI/ML imports
+# AI/ML imports (optional - will work without for lite version)
 try:
     from sentence_transformers import SentenceTransformer
     import faiss
     RAG_AVAILABLE = True
 except ImportError as e:
-    print(f"RAG libraries not fully available: {e}")
+    print(f"RAG libraries not available (lite mode): {e}")
     RAG_AVAILABLE = False
+    # Create dummy class for lite mode
+    class SentenceTransformer:
+        def __init__(self, *args, **kwargs):
+            pass
+    class faiss:
+        class IndexFlatIP:
+            def __init__(self, *args):
+                pass
+            def add(self, *args):
+                pass
+            def search(self, *args):
+                return None, None
+            @property
+            def ntotal(self):
+                return 0
 
 
 @dataclass

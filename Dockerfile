@@ -5,12 +5,13 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     poppler-utils \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements-lite.txt requirements.txt
+# Copy lite requirements (no heavy ML)
+COPY requirements-lite.txt /app/requirements.txt
 
-# Install packages (faster, no ML models)
+# Install packages (fast - ~2 minutes)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
